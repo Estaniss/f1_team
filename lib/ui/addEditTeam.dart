@@ -3,9 +3,9 @@ import '../db/model/Team.dart';
 import '../db/util/dbHelper.dart';
 
 class AddEditTeam extends StatefulWidget {
-  final Team? team; // Adiciona uma propriedade para a equipe
+  final Team? team;
 
-  AddEditTeam({this.team}); // Modifica o construtor
+  AddEditTeam({this.team});
 
   @override
   _AddEditTeamState createState() => _AddEditTeamState();

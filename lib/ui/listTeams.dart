@@ -59,7 +59,7 @@ class _ListTeamsState extends State<ListTeams> {
           await Navigator.push(context, MaterialPageRoute(builder: (context) {
             return AddEditTeam();
           }));
-          getData(); // Atualiza a lista após voltar
+          getData();
         },
         child: Icon(Icons.add),
         backgroundColor: Colors.black,
@@ -110,7 +110,7 @@ class _ListTeamsState extends State<ListTeams> {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return AddEditTeam(team: teams![position]);
                 })).then((_) {
-                  getData(); // Atualiza a lista após voltar
+                  getData();
                 });
               },
               child: Text('Editar'),
@@ -124,7 +124,7 @@ class _ListTeamsState extends State<ListTeams> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Fecha o diálogo
+                Navigator.pop(context);
               },
               child: Text('Cancelar'),
             ),
@@ -135,7 +135,7 @@ class _ListTeamsState extends State<ListTeams> {
   }
 
   void _deleteTeam(int position) async {
-    await helper.deleteTeam(teams![position].id!); // Use o ID da equipe
+    await helper.deleteTeam(teams![position].id!);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Deletando ${teams![position].name}"),
