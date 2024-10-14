@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "686386043563",
+    "project_id": "teamf1",
+    "storage_bucket": "teamf1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686386043563:android:63851cb1f4a3b144bcf5ee",
+        "android_client_info": {
+          "package_name": "br.edu.ifsp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-GqBqKR9y2JN-MNADzO6C3WnmnfFaucc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

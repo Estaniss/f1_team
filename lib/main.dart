@@ -2,8 +2,14 @@ import 'package:f1_team/ui/listTeams.dart';
 import 'package:flutter/material.dart';
 import 'db/model/Team.dart';
 import 'db/util/dbHelper.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() => runApp(new MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
