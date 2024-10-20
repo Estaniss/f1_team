@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:f1_team/db/model/Team.dart';
 import 'package:f1_team/ui/addEditTeam.dart';
 import 'package:flutter/material.dart';
-import '../db/util/dbHelper.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class ListTeams extends StatefulWidget {
   @override
@@ -10,9 +10,9 @@ class ListTeams extends StatefulWidget {
 }
 
 class _ListTeamsState extends State<ListTeams> {
-  DbHelper helper = DbHelper();
   List<Team>? teams;
   int count = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -21,27 +21,41 @@ class _ListTeamsState extends State<ListTeams> {
   }
 
   void getData() async {
-    await helper.initializeDb();
-    List<Map<String, dynamic>> result = (await helper.getTeams()).cast<Map<String, dynamic>>();
+    try {
+      DatabaseReference teamsRef = FirebaseDatabase.instance.ref().child('teams');
 
-    List<Team> teamList = [];
-    setState(() {
-      count = result.length;
-      for (int i = 0; i < count; i++) {
-        teamList.add(Team.fromMap(result[i]));
-        debugPrint(teamList[i].name);
-      }
-      teams = teamList;
-      debugPrint("Items $count");
-    });
+      teamsRef.once().then((DatabaseEvent event) {
+        final data = event.snapshot.value as Map<dynamic, dynamic>?;
+        if (data != null) {
+          List<Team> teamList = [];
+          data.forEach((key, value) {
+            Team team = Team.fromMap(value)..id = key;
+            teamList.add(team);
+          });
+          setState(() {
+            teams = teamList;
+            count = teamList.length;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
+    } catch (error) {
+      print('Erro ao buscar equipes: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar dados')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (teams == null) {
-      teams = [];
-    }
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -53,7 +67,9 @@ class _ListTeamsState extends State<ListTeams> {
           ),
         ),
       ),
-      body: teamListItems(),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : teamListItems(),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.push(context, MaterialPageRoute(builder: (context) {
@@ -84,7 +100,7 @@ class _ListTeamsState extends State<ListTeams> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(this.teams![position].motor),
-                Text('${this.teams![position].fistPilot} / ${this.teams![position].secondPilot}'),
+                Text('${this.teams![position].firstPilot} / ${this.teams![position].secondPilot}'),
               ],
             ),
             onTap: () {
@@ -106,7 +122,7 @@ class _ListTeamsState extends State<ListTeams> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Fecha o diálogo
+                Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return AddEditTeam(team: teams![position]);
                 })).then((_) {
@@ -135,26 +151,56 @@ class _ListTeamsState extends State<ListTeams> {
   }
 
   void _deleteTeam(int position) async {
-    await helper.deleteTeam(teams![position].id!);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Deletando ${teams![position].name}"),
-        duration: Duration(seconds: 2),
-      ),
+    AlertDialog(
+        title: Text('Ações'),
+        content: Text('Selecionado ${position}')
     );
-    setState(() {
-      teams!.removeAt(position);
-      count--;
-    });
-  }
-}
+    if (teams == null || position < 0 || position >= teams!.length) {
 
-Color getRandomColor() {
-  Random random = Random();
-  return Color.fromARGB(
-    255,
-    random.nextInt(256),
-    random.nextInt(256),
-    random.nextInt(256),
-  );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Erro: Equipe não encontrada"),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    String teamId = teams![position].id!;
+    print('Tentando deletar a equipe com ID: $teamId');
+
+    DatabaseReference teamRef = FirebaseDatabase.instance.ref().child('teams/$teamId');
+
+    try {
+      await teamRef.remove();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Equipe deletada com sucesso"),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      setState(() {
+        teams!.removeAt(position);
+        count--;
+      });
+    } catch (error) {
+      print('Erro ao deletar a equipe: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Erro ao deletar a equipe"),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Color getRandomColor() {
+    Random random = Random();
+    return Color.fromARGB(
+      255,
+      random.nextInt(256),
+      random.nextInt(256),
+      random.nextInt(256),
+    );
+  }
 }

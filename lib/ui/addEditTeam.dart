@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../db/model/Team.dart';
-import '../db/util/dbHelper.dart';
 
 class AddEditTeam extends StatefulWidget {
   final Team? team;
@@ -12,9 +12,9 @@ class AddEditTeam extends StatefulWidget {
 }
 
 class _AddEditTeamState extends State<AddEditTeam> {
-  DbHelper helper = DbHelper();
-
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
   String _name = '';
   String _firstPilot = '';
   String _secondPilot = '';
@@ -26,7 +26,7 @@ class _AddEditTeamState extends State<AddEditTeam> {
     super.initState();
     if (widget.team != null) {
       _name = widget.team!.name;
-      _firstPilot = widget.team!.fistPilot;
+      _firstPilot = widget.team!.firstPilot;
       _secondPilot = widget.team!.secondPilot;
       _motor = widget.team!.motor;
       _country = widget.team!.country;
@@ -39,7 +39,9 @@ class _AddEditTeamState extends State<AddEditTeam> {
       appBar: AppBar(
         title: Text(widget.team == null ? 'Adicionar Equipe' : 'Editar Equipe'),
       ),
-      body: Padding(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -91,35 +93,59 @@ class _AddEditTeamState extends State<AddEditTeam> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      if (widget.team == null) {
-        Team newTeam = Team(_name, _firstPilot, _secondPilot, _motor, _country);
-        int result = await helper.insertTeam(newTeam);
-        debugPrint("Equipe adicionada com ID: $result");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Equipe adicionada com sucesso"),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        Team updatedTeam = Team.withId(
-          widget.team!.id!,
-          _name,
-          _firstPilot,
-          _secondPilot,
-          _motor,
-          _country,
-        );
-        await helper.updateTeam(updatedTeam);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Equipe editada com sucesso"),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      setState(() {
+        _isLoading = true;
+      });
 
-      Navigator.pop(context);
+      try {
+        DatabaseReference teamsRef = FirebaseDatabase.instance.ref().child('teams');
+        if (widget.team == null) {
+          String newTeamId = teamsRef.push().key!;
+          Team newTeam = Team.withId(
+            newTeamId,
+            _name,
+            _firstPilot,
+            _secondPilot,
+            _motor,
+            _country,
+          );
+          await teamsRef.child(newTeamId).set(newTeam.toMap());
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Equipe adicionada com sucesso"),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          Team updatedTeam = Team.withId(
+            widget.team!.id!,
+            _name,
+            _firstPilot,
+            _secondPilot,
+            _motor,
+            _country,
+          );
+          await teamsRef.child(updatedTeam.id!).set(updatedTeam.toMap());
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Equipe editada com sucesso"),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erro ao salvar a equipe"),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.pop(context);
+      }
     }
   }
 }
